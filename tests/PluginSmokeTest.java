@@ -30,8 +30,8 @@ public final class PluginSmokeTest {
         require(hasParam(kkm.connectionParameters(), "printWidth"), "KKM printWidth parameter");
         require(hasParam(kkm.connectionParameters(), "feedLines"), "KKM feedLines parameter");
         require(
-                hasParam(terminal.connectionParameters(), "operationTimeoutSeconds"),
-                "INPAS timeout parameter");
+                !hasParam(terminal.connectionParameters(), "operationTimeoutSeconds"),
+                "INPAS bridge must not add terminal timeout settings");
 
         System.out.println("PluginSmokeTest: OK");
     }

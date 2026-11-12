@@ -74,7 +74,6 @@ public final class RRElectroPaxFix extends RRElectro {
         if (field == null) {
             // Внутреннее поле драйвера недоступно (например, после обновления
             // rr-electro). Печатаем штатно, без падения и без обрезки.
-            PaxSlipRegistry.restore(document);
             return super.print(document, cut, width);
         }
 
@@ -83,7 +82,8 @@ public final class RRElectroPaxFix extends RRElectro {
                     System::nanoTime, printWidth, feedLines);
             return true;
         } catch (Exception error) {
-            PaxSlipRegistry.restore(document);
+            // Не ставим слип обратно в очередь: часть строк уже могла уйти в
+            // ККТ, и автоматический повтор создал бы дубликат чека.
             log.error("PAX slip printing failed", error);
             return false;
         }
@@ -159,6 +159,26 @@ public final class RRElectroPaxFix extends RRElectro {
         @Override
         public void setWaitTimeout(long timeoutMillis) {
             driver.Set_WaitForPrintingTimeout(timeoutMillis);
+        }
+
+        @Override
+        public boolean getUseCommandTimeout() {
+            return driver.Get_UseCommandTimeout();
+        }
+
+        @Override
+        public void setUseCommandTimeout(boolean enabled) {
+            driver.Set_UseCommandTimeout(enabled);
+        }
+
+        @Override
+        public int getCommandTimeout() {
+            return driver.Get_CommandTimeout();
+        }
+
+        @Override
+        public void setCommandTimeout(int timeoutMillis) {
+            driver.Set_CommandTimeout(timeoutMillis);
         }
 
         @Override

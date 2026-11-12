@@ -31,30 +31,45 @@ final class RrPrintExecutor {
             int width,
             int feedLines) {
         long previousTimeout = port.getWaitTimeout();
+        boolean previousUseCommandTimeout = port.getUseCommandTimeout();
+        int previousCommandTimeout = port.getCommandTimeout();
         long deadlineNanos = clock.nanoTime() + WAIT_TIMEOUT_MILLIS * 1_000_000L;
 
         try {
             setRemainingWaitTimeout(port, previousTimeout, deadlineNanos, clock);
+            setRemainingCommandTimeout(port, deadlineNanos, clock);
+            port.setUseCommandTimeout(true);
             ensureOk(port, "WaitForPrinting", port.waitForPrinting());
 
             for (String line : renderLines(document, width)) {
-                ensureTimeRemaining(deadlineNanos, clock);
+                setRemainingCommandTimeout(port, deadlineNanos, clock);
                 ensureOk(port, "PrintString", port.printLine(line.isBlank() ? " " : line));
             }
 
-            ensureTimeRemaining(deadlineNanos, clock);
-            port.setFeedLines(feedLines);
-            ensureOk(port, "FeedDocument", port.feedDocument());
+            if (feedLines > 0) {
+                setRemainingCommandTimeout(port, deadlineNanos, clock);
+                port.setFeedLines(feedLines);
+                ensureOk(port, "FeedDocument", port.feedDocument());
+            }
 
             if (cut) {
-                ensureTimeRemaining(deadlineNanos, clock);
+                setRemainingCommandTimeout(port, deadlineNanos, clock);
                 ensureOk(port, "CutCheck", port.cutCheck());
             }
 
             setRemainingWaitTimeout(port, previousTimeout, deadlineNanos, clock);
+            setRemainingCommandTimeout(port, deadlineNanos, clock);
             ensureOk(port, "WaitForPrinting", port.waitForPrinting());
         } finally {
-            port.setWaitTimeout(previousTimeout);
+            try {
+                port.setCommandTimeout(previousCommandTimeout);
+            } finally {
+                try {
+                    port.setUseCommandTimeout(previousUseCommandTimeout);
+                } finally {
+                    port.setWaitTimeout(previousTimeout);
+                }
+            }
         }
     }
 
@@ -74,10 +89,16 @@ final class RrPrintExecutor {
         port.setWaitTimeout(boundedTimeout);
     }
 
-    private static void ensureTimeRemaining(long deadlineNanos, NanoClock clock) {
-        if (clock.nanoTime() >= deadlineNanos) {
+    private static void setRemainingCommandTimeout(
+            Port port,
+            long deadlineNanos,
+            NanoClock clock) {
+        long remainingNanos = deadlineNanos - clock.nanoTime();
+        if (remainingNanos <= 0) {
             throw new IllegalStateException("RR Electro print deadline exceeded");
         }
+        long remainingMillis = Math.max(1L, (remainingNanos + 999_999L) / 1_000_000L);
+        port.setCommandTimeout((int) Math.min(Integer.MAX_VALUE, remainingMillis));
     }
 
     static List<String> renderLines(PrintDocument document, int width) {
@@ -107,6 +128,14 @@ final class RrPrintExecutor {
         long getWaitTimeout();
 
         void setWaitTimeout(long timeoutMillis);
+
+        boolean getUseCommandTimeout();
+
+        void setUseCommandTimeout(boolean enabled);
+
+        int getCommandTimeout();
+
+        void setCommandTimeout(int timeoutMillis);
 
         int waitForPrinting();
 

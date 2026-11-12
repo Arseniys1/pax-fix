@@ -59,10 +59,6 @@ public final class PaxSlipRegistry {
         return consumed.get();
     }
 
-    public static void restore(PrintDocument document) {
-        registerDocument(document);
-    }
-
     private static void registerDocument(PrintDocument document) {
         String key = fingerprint(document);
         if (key == null) {

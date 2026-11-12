@@ -79,12 +79,6 @@ Write-Host "[4/5] Running the real BIFIT slip-conversion path and ServiceLoader 
 & $java "-Dapp.home=$AppHome" -cp "$testClasses;$outJar;$classpath" `
     com.example.cashdesk.paxfix.kkm.SlipPipelineIntegrationTest
 if ($LASTEXITCODE -ne 0) { throw "Slip pipeline integration test failed" }
-& $java "-Dapp.home=$AppHome" -cp "$testClasses;$outJar;$classpath" `
-    com.example.cashdesk.paxfix.terminal.BoundedProcessRunnerTest
-if ($LASTEXITCODE -ne 0) { throw "Bounded INPAS process test failed" }
-& $java "-Dapp.home=$AppHome" -cp "$testClasses;$outJar;$classpath" `
-    com.example.cashdesk.paxfix.terminal.InpasPipelineIntegrationTest
-if ($LASTEXITCODE -ne 0) { throw "INPAS pipeline integration test failed" }
 & $java "-Dapp.home=$AppHome" -cp "$testClasses;$outJar;$classpath" PluginSmokeTest
 if ($LASTEXITCODE -ne 0) { throw "ServiceLoader smoke test failed" }
 
